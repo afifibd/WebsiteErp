@@ -1,0 +1,20 @@
+# Node modules
+frontend-erp/node_modules/
+backend-erp/node_modules/
+
+# Build files
+frontend-erp/dist/
+frontend-erp/.vite/
+
+# Laravel
+backend-erp/vendor/
+backend-erp/storage/
+backend-erp/.env
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

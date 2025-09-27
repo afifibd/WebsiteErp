@@ -1,0 +1,16 @@
+@layer components {
+  /* Heading besar */
+  .heading-lg {
+    @apply text-[36px] font-semibold font-inter text-gray-900;
+  }
+
+  /* Body teks kecil */
+  .body-sm {
+    @apply text-sm font-normal font-inter text-gray-600;
+  }
+
+  /* Body teks sedang */
+  .body-md {
+    @apply text-base font-normal font-inter text-gray-700;
+  }
+}
