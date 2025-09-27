@@ -4,6 +4,7 @@ Website ERP ini adalah project pribadi yang terdiri dari:
 - **Backend** → Laravel 10 (folder `backend-erp`)
 - **Frontend** → Vue 3 + Vite (folder `frontend-erp`)
 
+saat ini masih dalam tahap develop
 ## Cara Menjalankan
 ### Backend
 ```bash
