@@ -14,12 +14,13 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('supplier'); 
             $table->string('sku')->unique();
             $table->string('category');
-            $table->unsignedInteger('stock')->default(0);
-            $table->decimal('cost', 15, 2);
-            $table->decimal('price', 15, 2);
-            $table->decimal('margin', 5, 2)->storedAs('(price - cost) / cost * 100');
+            $table->integer('stock');
+            $table->decimal('cost', 10, 2);
+            $table->decimal('price', 10, 2);
+            $table->decimal('margin', 5, 2)->nullable();
             $table->timestamps();
         });
     }

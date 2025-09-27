@@ -11,10 +11,18 @@ class Product extends Model
 
     protected $fillable = [
         'name',
+        'supplier_id',
         'sku',
         'category',
         'stock',
         'cost',
         'price',
     ];
+
+
+    // app/Models/Product.php
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
 }

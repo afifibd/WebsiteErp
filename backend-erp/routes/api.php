@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\SupplierController;
 
 Route::middleware('api')->group(function () {
     // CSRF
@@ -22,4 +23,9 @@ Route::middleware('api')->group(function () {
     });
 
     Route::apiResource('products', ProductController::class);
+
+    Route::prefix('suppliers')->group(function () {
+    Route::get('/', [SupplierController::class, 'index']);    // Get all suppliers
+    Route::post('/', [SupplierController::class, 'store']);    // Add supplier
+});
 });

@@ -9,23 +9,35 @@ class ProductController extends Controller
 {
     public function index()
     {
-        return Product::all();
+        $products = Product::with('supplier')->get();
+
+        return $products;
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string',
+            'supplier_id' => 'required|exists:suppliers,id',
             'sku' => 'required|string|unique:products,sku',
             'category' => 'required|string',
-            'stock' => 'required|integer|min:0',
-            'cost' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer',
+            'cost' => 'required|numeric',
+            'price' => 'required|numeric',
         ]);
 
-        $product = Product::create($data);
+        $margin = (($validated['price'] - $validated['cost']) / $validated['cost']) * 100;
+
+        $product = Product::create([
+            ...$validated,
+            'margin' => $margin,
+        ]);
+
         return response()->json($product, 201);
     }
+
+
+
 
     public function show(Product $product)
     {
@@ -34,18 +46,23 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
-        $data = $request->validate([
-            'name' => 'required|string',
-            'sku' => 'required|string|unique:products,sku,' . $product->id,
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'supplier_id' => 'required|exists:suppliers,id',
+            'sku' => 'required|string|max:100|unique:products,sku,' . $product->id,
             'category' => 'required|string',
-            'stock' => 'required|integer|min:0',
-            'cost' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer',
+            'cost' => 'required|numeric',
+            'price' => 'required|numeric',
         ]);
 
-        $product->update($data);
+        $validated['margin'] = (($validated['price'] - $validated['cost']) / $validated['price']) * 100;
+
+        $product->update($validated);
+
         return response()->json($product);
     }
+
 
     public function destroy(Product $product)
     {
