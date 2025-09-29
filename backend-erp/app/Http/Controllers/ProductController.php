@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
 
@@ -9,64 +10,45 @@ class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::with('supplier')->get();
-
-        return $products;
+        return response()->json(Product::with('supplier')->get());
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string',
-            'supplier_id' => 'required|exists:suppliers,id',
-            'sku' => 'required|string|unique:products,sku',
-            'category' => 'required|string',
-            'stock' => 'required|integer',
-            'cost' => 'required|numeric',
-            'price' => 'required|numeric',
+        $request->validate([
+            'name'        => 'required|string|max:255',
+            'sku'         => 'required|string|unique:products',
+            'category'    => 'nullable|string',
+            'supplier_id' => 'nullable|exists:suppliers,supplier_id',
+            'stock'       => 'required|integer',
+            'cost'        => 'required|numeric',
+            'price'       => 'required|numeric',
         ]);
 
-        $margin = (($validated['price'] - $validated['cost']) / $validated['cost']) * 100;
+        $margin = $request->cost > 0 ? (($request->price - $request->cost) / $request->cost) * 100 : 0;
 
-        $product = Product::create([
-            ...$validated,
-            'margin' => $margin,
-        ]);
+        $product = Product::create($request->all() + ['margin' => $margin]);
 
         return response()->json($product, 201);
     }
 
-
-
-
-    public function show(Product $product)
+    public function show($id)
     {
-        return $product;
+        return response()->json(Product::with('supplier')->findOrFail($id));
     }
 
-    public function update(Request $request, Product $product)
+    public function update(Request $request, $id)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'supplier_id' => 'required|exists:suppliers,id',
-            'sku' => 'required|string|max:100|unique:products,sku,' . $product->id,
-            'category' => 'required|string',
-            'stock' => 'required|integer',
-            'cost' => 'required|numeric',
-            'price' => 'required|numeric',
-        ]);
-
-        $validated['margin'] = (($validated['price'] - $validated['cost']) / $validated['price']) * 100;
-
-        $product->update($validated);
+        $product = Product::findOrFail($id);
+        $margin = $request->cost > 0 ? (($request->price - $request->cost) / $request->cost) * 100 : 0;
+        $product->update($request->all() + ['margin' => $margin]);
 
         return response()->json($product);
     }
 
-
-    public function destroy(Product $product)
+    public function destroy($id)
     {
-        $product->delete();
+        Product::destroy($id);
         return response()->json(['message' => 'Product deleted']);
     }
 }

@@ -12,19 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('products', function (Blueprint $table) {
-            $table->id();
+            $table->id('product_id');
             $table->string('name');
-            $table->string('supplier'); 
             $table->string('sku')->unique();
-            $table->string('category');
-            $table->integer('stock');
-            $table->decimal('cost', 10, 2);
-            $table->decimal('price', 10, 2);
-            $table->decimal('margin', 5, 2)->nullable();
+            $table->string('category')->nullable();
+            $table->foreignId('supplier_id')->nullable()->constrained('suppliers', 'supplier_id')->cascadeOnDelete();
+            $table->integer('stock')->default(0);
+            $table->decimal('cost', 12, 2)->default(0);
+            $table->decimal('price', 12, 2)->default(0);
+            $table->enum('status', ['in', 'low', 'out'])->default('in');
             $table->timestamps();
         });
     }
-
 
     /**
      * Reverse the migrations.

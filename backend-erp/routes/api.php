@@ -1,31 +1,28 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Route;   
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\ReportController; 
 
-Route::middleware('api')->group(function () {
-    // CSRF
-    Route::get('/sanctum/csrf-cookie', function () {
-        return response()->json(['csrf' => csrf_token()]);
-    });
 
-    // Auth
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
-    Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'user']);
+Route::post('/register',[AuthController::class,'register']);
+Route::post('/login',[AuthController::class,'login']);
 
-    // Dashboard (protected)
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'index']);
-    });
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout',[AuthController::class,'logout']);
 
     Route::apiResource('products', ProductController::class);
+    Route::apiResource('customers', CustomerController::class);
+    Route::apiResource('suppliers', SupplierController::class);
+    Route::apiResource('orders', OrderController::class);
+    Route::apiResource('purchases', PurchaseController::class);
 
-    Route::prefix('suppliers')->group(function () {
-    Route::get('/', [SupplierController::class, 'index']);    // Get all suppliers
-    Route::post('/', [SupplierController::class, 'store']);    // Add supplier
-});
+    // Report endpoint
+    Route::get('/reports/sales',[ReportController::class,'sales']);
+    Route::get('/reports/purchases',[ReportController::class,'purchases']);
 });

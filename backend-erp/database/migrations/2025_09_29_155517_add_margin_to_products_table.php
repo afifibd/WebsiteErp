@@ -9,21 +9,17 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->unsignedBigInteger('supplier_id')->nullable()->after('id');
-            $table->foreign('supplier_id')->references('id')->on('suppliers')->onDelete('set null');
+            $table->decimal('margin', 8, 2)->default(0)->after('price');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::table('products', function (Blueprint $table) {
-            //
+            $table->dropColumn('margin');
         });
     }
 };

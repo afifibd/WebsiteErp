@@ -6,24 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Supplier extends Model
 {
-    protected $fillable = [
-        'code',
-        'name',
-        'email',
-        'phone',
-        'address',
-        'category',
-        'rating',
-        'orders_count',
-        'total_purchased',
-        'terms',
-        'delivery_days',
-        'status'
-    ];
+    protected $primaryKey = 'supplier_id';
+    protected $fillable = ['name','email','phone','address','category','payment_terms','status'];
 
-    // app/Models/Supplier.php
     public function products()
     {
-        return $this->hasMany(Product::class, 'supplier_id');
+        return $this->hasMany(Product::class, 'supplier_id', 'supplier_id');
+    }
+
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class, 'supplier_id', 'supplier_id');
     }
 }
+

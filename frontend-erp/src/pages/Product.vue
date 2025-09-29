@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import axios from "axios";
+import { ref, computed, onMounted, watch } from "vue";
+import axios from "../axios.js";
 import Sidebar from "../components/Sidebar.vue";
 import PageHeader from "../components/PageHeader.vue";
 import MyCard from "../components/MyCard.vue";
@@ -12,29 +12,13 @@ import Slideout from "../components/Slideout.vue";
 import MyButton from "../components/MyButton.vue";
 import { Plus, Pencil, Trash, Filter, Package } from "lucide-vue-next";
 
-// Base API
-const api = axios.create({
-  baseURL: "http://localhost:8000/api", // sesuaikan URL backend Laravel
-});
-
-// States
+// =====================
+// STATES
+// =====================
 const search = ref("");
 const category = ref("");
 const status = ref("");
 const stockThreshold = ref(30);
-
-function getCategoryLabel(value) {
-  const cat = categories.find((c) => c.value === value);
-  return cat ? cat.label : value;
-}
-
-const categories = [
-  { label: "All Categories", value: "" },
-  { label: "Cleaning Supplies", value: "cleaning" },
-  { label: "Food & Beverages", value: "food" },
-  { label: "Personal Care", value: "personal" },
-  { label: "Household Items", value: "household" },
-];
 
 const statuses = [
   { label: "All Status", value: "" },
@@ -43,20 +27,67 @@ const statuses = [
   { label: "Low Stock", value: "low" },
 ];
 
+// =====================
+// SUPPLIERS
+// =====================
 const suppliers = ref([]);
 
 async function fetchSuppliers() {
-  const res = await api.get("/suppliers");
+  const res = await axios.get("/suppliers");
   suppliers.value = res.data;
 }
 
+// Filtered supplier untuk dropdown di Slideout
+const filteredSuppliers = computed(() => {
+  if (!form.value.category) return suppliers.value;
+  return suppliers.value.filter(
+    (s) => s.category.toLowerCase() === form.value.category.toLowerCase()
+  );
+});
+
+// =====================
+// CATEGORY UNTUK SLIDEOUT (AMBIL DARI SUPPLIER)
+// =====================
+const filteredCategoriesSlideout = computed(() => {
+  const uniqueCategories = [...new Set(suppliers.value.map((s) => s.category))];
+
+  if (!form.value.supplier_id) {
+    return uniqueCategories.map((c) => ({ label: c, value: c }));
+  }
+
+  const selectedSupplier = suppliers.value.find(
+    (s) => s.supplier_id === form.value.supplier_id
+  );
+
+  return selectedSupplier
+    ? [{ label: selectedSupplier.category, value: selectedSupplier.category }]
+    : uniqueCategories.map((c) => ({ label: c, value: c }));
+});
+
+// =====================
+// CATEGORY UNTUK FILTER (AMBIL DARI PRODUCTS)
+// =====================
+const filterCategories = computed(() => {
+  const uniqueCategories = [...new Set(products.value.map((p) => p.category))];
+  return [
+    { label: "All Categories", value: "" },
+    ...uniqueCategories.map((c) => ({
+      label: c,
+      value: c,
+    })),
+  ];
+});
+
+// =====================
+// PRODUCTS
+// =====================
 const products = ref([]);
 const loading = ref(false);
-const error = ref(null);
+const rawProducts = ref([]);
 
 // Slideout
 const showSlideout = ref(false);
-const slideoutMode = ref("add"); // "add" | "edit" | "delete"
+const slideoutMode = ref("add");
 const currentProduct = ref(null);
 
 // Form
@@ -72,32 +103,27 @@ const form = ref({
 });
 
 // Fetch products dari API
-const rawProducts = ref([]);
-
 async function fetchProducts() {
   loading.value = true;
   try {
-    const res = await api.get("/products");
-    console.log("API Response:", res.data); // <-- Tambahkan ini
+    const res = await axios.get("/products");
+    console.log("API Response:", res.data);
 
     rawProducts.value = res.data;
 
-    products.value = res.data.map(p => ({
+    products.value = res.data.map((p) => ({
       ...p,
       supplier: p.supplier ? p.supplier.name : "No Supplier",
       formattedCost: "Rp" + Number(p.cost).toLocaleString(),
       formattedPrice: "Rp" + Number(p.price).toLocaleString(),
-      formattedMargin: Number(p.margin ?? 0).toFixed(1) + "%"
+      formattedMargin: Number(p.margin ?? 0).toFixed(1) + "%",
     }));
   } finally {
     loading.value = false;
   }
 }
 
-
-
-
-// Hitung status
+// Hitung status stok
 function getStatus(product) {
   const stockNum = Number(product.stock.toString().replace(/\D/g, ""));
   if (stockNum === 0) return { value: "out", label: "Out of Stock" };
@@ -118,19 +144,25 @@ const filteredProducts = computed(() => {
         search.value === "" ||
         p.name.toLowerCase().includes(search.value.toLowerCase()) ||
         p.sku.toLowerCase().includes(search.value.toLowerCase());
+
       const matchesCategory =
         category.value === "" ||
-        p.category.toLowerCase().includes(category.value.toLowerCase());
+        p.category.toLowerCase() === category.value.toLowerCase();
+
       const matchesStatus = status.value === "" || p.status === status.value;
+
       return matchesSearch && matchesCategory && matchesStatus;
     });
 });
 
-// Slideout handlers
+// =====================
+// SLIDEOUT HANDLERS
+// =====================
 function openAdd() {
   slideoutMode.value = "add";
   form.value = {
     name: "",
+    supplier_id: "",
     sku: "",
     category: "",
     stock: 0,
@@ -158,10 +190,12 @@ function closeSlideout() {
   showSlideout.value = false;
 }
 
-// CRUD via API
+// =====================
+// CRUD
+// =====================
 async function saveProduct() {
   try {
-    const res = await api.post("/products", {
+    const res = await axios.post("/products", {
       name: form.value.name,
       supplier_id: form.value.supplier_id,
       sku: form.value.sku,
@@ -170,12 +204,16 @@ async function saveProduct() {
       cost: Number(form.value.cost.toString().replace(/\D/g, "")),
       price: Number(form.value.price.toString().replace(/\D/g, "")),
     });
-    products.value.push({
+    const newProduct = {
       ...res.data,
-      cost: "Rp" + Number(res.data.cost).toLocaleString(),
-      price: "Rp" + Number(res.data.price).toLocaleString(),
-      margin: Number(res.data.margin).toFixed(1) + "%",
-    });
+      supplier: suppliers.value.find(
+        (s) => s.supplier_id === form.value.supplier_id
+      )?.name,
+      formattedCost: "Rp" + Number(res.data.cost).toLocaleString(),
+      formattedPrice: "Rp" + Number(res.data.price).toLocaleString(),
+      formattedMargin: Number(res.data.margin ?? 0).toFixed(1) + "%",
+    };
+    products.value.push(newProduct);
     showSlideout.value = false;
   } catch (err) {
     console.error(err);
@@ -184,38 +222,48 @@ async function saveProduct() {
 
 async function updateProduct() {
   try {
-    const res = await api.put(`/products/${currentProduct.value.id}`, {
-      name: form.value.name,
-      supplier_id: form.value.supplier_id,
-      sku: form.value.sku,
-      category: form.value.category,
-      stock: Number(form.value.stock),
-      cost: Number(form.value.cost.toString().replace(/\D/g, "")),
-      price: Number(form.value.price.toString().replace(/\D/g, "")),
-    });
+    const res = await axios.put(
+      `/products/${currentProduct.value.product_id}`,
+      {
+        name: form.value.name,
+        supplier_id: form.value.supplier_id,
+        sku: form.value.sku,
+        category: form.value.category,
+        stock: Number(form.value.stock),
+        cost: Number(form.value.cost.toString().replace(/\D/g, "")),
+        price: Number(form.value.price.toString().replace(/\D/g, "")),
+      }
+    );
 
     const index = products.value.findIndex(
-      (p) => p.id === currentProduct.value.id
+      (p) => p.product_id === currentProduct.value.product_id
     );
+
     if (index !== -1) {
-      products.value[index] = {
+      const updatedProduct = {
         ...res.data,
-        cost: "Rp" + Number(res.data.cost).toLocaleString(),
-        price: "Rp" + Number(res.data.price).toLocaleString(),
-        margin: Number(res.data.margin).toFixed(1) + "%",
+        supplier: suppliers.value.find(
+          (s) => s.supplier_id === form.value.supplier_id
+        )?.name,
+        formattedCost: "Rp" + Number(res.data.cost).toLocaleString(),
+        formattedPrice: "Rp" + Number(res.data.price).toLocaleString(),
+        formattedMargin: Number(res.data.margin ?? 0).toFixed(1) + "%",
       };
+      products.value[index] = updatedProduct; // <-- ganti data lama
     }
+
     showSlideout.value = false;
   } catch (err) {
     console.error(err);
   }
 }
+
 
 async function deleteProduct() {
   try {
-    await api.delete(`/products/${currentProduct.value.id}`);
+    await axios.delete(`/products/${currentProduct.value.product_id}`);
     products.value = products.value.filter(
-      (p) => p.id !== currentProduct.value.id
+      (p) => p.product_id !== currentProduct.value.product_id
     );
     showSlideout.value = false;
   } catch (err) {
@@ -223,7 +271,35 @@ async function deleteProduct() {
   }
 }
 
-// Fetch on mounted
+// =====================
+// WATCHERS
+// =====================
+watch(
+  () => form.value.supplier_id,
+  (newVal) => {
+    if (newVal) {
+      const selectedSupplier = suppliers.value.find(
+        (s) => s.supplier_id === newVal
+      );
+      if (selectedSupplier) {
+        form.value.category = selectedSupplier.category;
+      }
+    }
+  }
+);
+
+watch(
+  () => form.value.category,
+  (newVal) => {
+    if (!newVal) {
+      form.value.supplier_id = "";
+    }
+  }
+);
+
+// =====================
+// MOUNT
+// =====================
 onMounted(() => {
   fetchSuppliers();
   fetchProducts();
@@ -243,7 +319,6 @@ onMounted(() => {
           @button-click="openAdd"
         />
 
-        <!-- Filters -->
         <MyCard padding="p-4" title="Filters">
           <template #icon>
             <Filter class="w-4 h-4 text-gray-900" />
@@ -256,20 +331,22 @@ onMounted(() => {
             />
             <MyDropdown
               v-model="category"
-              :options="categories"
+              :options="filterCategories"
               placeholder="All Categories"
               class="flex-1 min-w-[150px]"
+              :show-clear="false"
             />
             <MyDropdown
               v-model="status"
               :options="statuses"
               placeholder="All Status"
               class="flex-1 min-w-[150px]"
+              :show-clear="false"
             />
           </div>
         </MyCard>
 
-        <!-- Table -->
+        <!-- TABLE -->
         <div class="overflow-x-auto">
           <MyTable
             title="Products"
@@ -302,17 +379,15 @@ onMounted(() => {
                   </div>
                 </td>
                 <td class="px-6 py-4">{{ product.sku }}</td>
-                <td class="px-6 py-4">
-                  {{ getCategoryLabel(product.category) }}
-                </td>
+                <td class="px-6 py-4">{{ product.category }}</td>
                 <td class="px-6 py-4">{{ product.stock }}</td>
                 <td class="px-6 py-4">{{ product.formattedCost }}</td>
                 <td class="px-6 py-4">{{ product.formattedPrice }}</td>
                 <td class="px-6 py-4">{{ product.formattedMargin }}</td>
                 <td class="px-6 py-4">
-                  <StatusBadge :status="product.status">{{
-                    product.statusLabel
-                  }}</StatusBadge>
+                  <StatusBadge :status="product.status">
+                    {{ product.statusLabel }}
+                  </StatusBadge>
                 </td>
                 <td class="px-6 py-4 flex gap-2 flex-wrap">
                   <button
@@ -340,6 +415,7 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- SLIDEOUT -->
     <Slideout
       :open="showSlideout"
       :title="
@@ -359,19 +435,29 @@ onMounted(() => {
             v-model="form.name"
             placeholder="Product Name"
           />
+
           <MyDropdown
             label="Supplier"
             v-model="form.supplier_id"
-            :options="suppliers.map((s) => ({ label: s.name, value: s.id }))"
+            :options="
+              filteredSuppliers.map((s) => ({
+                label: s.name,
+                value: s.supplier_id,
+              }))
+            "
             placeholder="Select Supplier"
           />
+
           <MyInputField label="SKU" v-model="form.sku" placeholder="SKU" />
+
+          <!-- Category di Slideout ambil dari SUPPLIER -->
           <MyDropdown
             label="Category"
             v-model="form.category"
-            :options="categories.slice(1)"
+            :options="filteredCategoriesSlideout"
             placeholder="Select Category"
           />
+
           <MyInputField
             label="Stock"
             v-model="form.stock"
@@ -436,7 +522,6 @@ onMounted(() => {
             color="error"
             variant="filled"
             size="md"
-            class="w-full md:w-auto"
             @click="deleteProduct"
           >
             Delete
