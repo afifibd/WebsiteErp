@@ -5,6 +5,8 @@ import Login from "../auth/Login.vue";
 import Dashboard from "../pages/Dashboard.vue";
 import Product from "../pages/Product.vue"; 
 import Order from "../pages/Order.vue"; 
+import Customer from "../pages/Customer.vue";
+import Supplier from "../pages/Supplier.vue";
 
 const routes = [
   {
@@ -28,6 +30,18 @@ const routes = [
     path: "/order",
     name: "Order",
     component: Order,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/customer",
+    name: "Customer",
+    component: Customer,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/supplier",
+    name: "Supplier",
+    component: Supplier,
     meta: { requiresAuth: true },
   },
   {

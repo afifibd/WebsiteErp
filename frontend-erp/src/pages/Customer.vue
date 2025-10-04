@@ -10,118 +10,129 @@ import StatusBadge from "../components/StatusBadge.vue";
 import Slideout from "../components/Slideout.vue";
 import MyButton from "../components/MyButton.vue";
 import {
-  Search,
   Filter,
-  ShoppingCart,
-  Clock,
-  Truck,
+  User,
+  UserCheckIcon,
   Coins,
   Pencil,
   Trash,
   Plus,
+  BarChart2,
 } from "lucide-vue-next";
 
 // =============================
 // State Filters
 // =============================
 const search = ref("");
-const payment = ref("");
+const type = ref("");
 const status = ref("");
 
-const payments = [
-  { label: "All Payment", value: "" },
-  { label: "Paid", value: "paid" },
-  { label: "Pending", value: "pending" },
-  { label: "Failed", value: "failed" },
+const types = [
+  { label: "All Type", value: "" },
+  { label: "Retail", value: "retail" },
+  { label: "Wholesale", value: "wholesale" },
 ];
 
 const statuses = [
   { label: "All Status", value: "" },
-  { label: "Processing", value: "processing" },
-  { label: "Shipped", value: "shipped" },
-  { label: "Delivered", value: "delivered" },
-  { label: "Pending", value: "pending" },
-  { label: "Canceled", value: "canceled" },
+  { label: "Active", value: "active" },
+  { label: "Inactive", value: "inactive" },
 ];
 
 // =============================
-// Dummy Orders
+// Dummy Customers
 // =============================
-const orders = ref([
+const customers = ref([
   {
     id: 1,
-    code: "ORD-001",
     customer: "ABC Mart",
-    email: "orders@abcmart.com",
-    date: "2024-09-20",
-    items: 15,
-    total: 38750,
-    payment: "paid",
-    status: "shipped",
+    code: "CUST-001",
+    email: "customers@abcmart.com",
+    telp: "0812-1111-1111",
+    type: "retail",
+    orders: 1,
+    total_spent: 38750,
+    credit_limit: 1000000,
+    status: "active",
   },
   {
     id: 2,
-    code: "ORD-002",
     customer: "QuickStop Store",
+    code: "CUST-002",
     email: "purchasing@quickstop.com",
-    date: "2024-09-19",
-    items: 123,
-    total: 58125,
-    payment: "pending",
-    status: "processing",
+    telp: "0812-2222-2222",
+    type: "retail",
+    orders: 1,
+    total_spent: 58125,
+    credit_limit: 2000000,
+    status: "inactive",
   },
   {
     id: 3,
-    code: "ORD-003",
     customer: "Retail Hub",
-    email: "orders@retailhub.com",
-    date: "2024-09-18",
-    items: 50,
-    total: 150000,
-    payment: "failed",
-    status: "canceled",
+    code: "CUST-003",
+    email: "customers@retailhub.com",
+    telp: "0812-3333-3333",
+    type: "wholesale",
+    orders: 1,
+    total_spent: 150000,
+    credit_limit: 5000000,
+    status: "inactive",
   },
   {
     id: 4,
-    code: "ORD-004",
     customer: "Global Supplies",
-    email: "orders@globalsupplies.com",
-    date: "2024-09-17",
-    items: 75,
-    total: 250000,
-    payment: "paid",
-    status: "processing",
+    code: "CUST-004",
+    email: "customers@globalsupplies.com",
+    telp: "0812-4444-4444",
+    type: "wholesale",
+    orders: 1,
+    total_spent: 250000,
+    credit_limit: 10000000,
+    status: "active",
   },
   {
     id: 5,
-    code: "ORD-005",
     customer: "Wholesale Direct",
-    email: "orders@wholesaledirect.com",
-    date: "2024-09-16",
-    items: 100,
-    total: 500000,
-    payment: "paid",
-    status: "delivered",
+    code: "CUST-005",
+    email: "customers@wholesaledirect.com",
+    telp: "0812-5555-5555",
+    type: "wholesale",
+    orders: 1,
+    total_spent: 500000,
+    credit_limit: 8000000,
+    status: "active",
   },
 ]);
 
 // =============================
-// Computed: Filter Orders
+// Computed
 // =============================
-const filteredOrders = computed(() => {
-  return orders.value.filter((order) => {
+const filteredCustomers = computed(() => {
+  return customers.value.filter((customer) => {
     const matchesSearch =
       search.value === "" ||
-      order.customer.toLowerCase().includes(search.value.toLowerCase()) ||
-      order.code.toLowerCase().includes(search.value.toLowerCase());
+      customer.customer.toLowerCase().includes(search.value.toLowerCase()) ||
+      customer.code.toLowerCase().includes(search.value.toLowerCase());
 
-    const matchesPayment =
-      payment.value === "" || order.payment === payment.value;
+    const matchesType =
+      type.value === "" || customer.type === type.value;
 
-    const matchesStatus = status.value === "" || order.status === status.value;
+    const matchesStatus =
+      status.value === "" || customer.status === status.value;
 
-    return matchesSearch && matchesPayment && matchesStatus;
+    return matchesSearch && matchesType && matchesStatus;
   });
+});
+
+const revenue = computed(() => {
+  return customers.value.reduce((acc, c) => acc + c.total_spent, 0);
+});
+
+const avgOrderValue = computed(() => {
+  const totalSpent = customers.value.reduce((acc, c) => acc + c.total_spent, 0);
+  const totalOrders = customers.value.reduce((acc, c) => acc + c.orders, 0);
+  return totalOrders > 0 ? totalSpent / totalOrders : 0;
 });
 
 // =============================
@@ -129,51 +140,53 @@ const filteredOrders = computed(() => {
 // =============================
 const showSlideout = ref(false);
 const slideoutMode = ref("add"); // "add" | "edit" | "delete"
-const currentOrder = ref(null);
+const currentCustomer = ref(null);
 
 const form = ref({
   code: "",
   customer: "",
   email: "",
-  date: "",
-  items: 0,
-  total: 0,
-  payment: "",
+  telp: "",
+  type: "",
+  orders: 0,
+  total_spent: 0,
+  credit_limit: 0,
   status: "",
 });
 
-// Open Add Slideout
+// Open Add
 function openAdd() {
   slideoutMode.value = "add";
   form.value = {
     code: "",
     customer: "",
     email: "",
-    date: "",
-    items: 0,
-    total: 0,
-    payment: "",
+    telp: "",
+    type: "",
+    orders: 0,
+    total_spent: 0,
+    credit_limit: 0,
     status: "",
   };
   showSlideout.value = true;
 }
 
-// Open Edit Slideout
-function openEdit(order) {
+// Open Edit
+function openEdit(customer) {
   slideoutMode.value = "edit";
-  form.value = { ...order };
-  currentOrder.value = order;
+  form.value = { ...customer };
+  currentCustomer.value = customer;
   showSlideout.value = true;
 }
 
-// Open Delete Slideout
-function openDelete(order) {
+// Open Delete
+function openDelete(customer) {
   slideoutMode.value = "delete";
-  currentOrder.value = order;
+  currentCustomer.value = customer;
   showSlideout.value = true;
 }
 
-// Close Slideout
+// Close
 function closeSlideout() {
   showSlideout.value = false;
 }
@@ -181,26 +194,37 @@ function closeSlideout() {
 // =============================
 // CRUD Dummy
 // =============================
-function saveOrder() {
-  const newOrder = {
+function saveCustomer() {
+  const newCustomer = {
     ...form.value,
     id: Date.now(),
-    total: Number(form.value.total),
+    orders: Number(form.value.orders),
+    total_spent: Number(form.value.total_spent),
+    credit_limit: Number(form.value.credit_limit),
   };
-  orders.value.push(newOrder);
+  customers.value.push(newCustomer);
   showSlideout.value = false;
 }
 
-function updateOrder() {
-  const index = orders.value.findIndex((o) => o.id === currentOrder.value.id);
+function updateCustomer() {
+  const index = customers.value.findIndex(
+    (c) => c.id === currentCustomer.value.id
+  );
   if (index !== -1) {
-    orders.value[index] = { ...form.value };
+    customers.value[index] = {
+      ...form.value,
+      orders: Number(form.value.orders),
+      total_spent: Number(form.value.total_spent),
+      credit_limit: Number(form.value.credit_limit),
+    };
   }
   showSlideout.value = false;
 }
 
-function deleteOrder() {
-  orders.value = orders.value.filter((o) => o.id !== currentOrder.value.id);
+function deleteCustomer() {
+  customers.value = customers.value.filter(
+    (c) => c.id !== currentCustomer.value.id
+  );
   showSlideout.value = false;
 }
 
@@ -222,9 +246,9 @@ function formatCurrency(value) {
       <div class="flex-1 flex flex-col p-4 md:px-4 md:py-6 gap-6">
         <!-- Header -->
         <PageHeader
-          title="Order Management"
-          subtitle="Track and manage wholesale orders"
-          buttonText="New Order"
+          title="Customer Management"
+          subtitle="Manage your wholesale customers"
+          buttonText="Add Customer"
           buttonIcon="plus"
           @button-click="openAdd"
         />
@@ -234,32 +258,21 @@ function formatCurrency(value) {
           <MyCard>
             <div class="flex justify-between items-center">
               <div>
-                <p class="text-sm text-gray-500">Total Orders</p>
-                <p class="text-lg font-semibold">{{ orders.length }}</p>
+                <p class="text-sm text-gray-500">Total Customers</p>
+                <p class="text-lg font-semibold">{{ customers.length }}</p>
               </div>
-              <ShoppingCart class="w-10 h-10 text-gray-800" />
+              <User class="w-10 h-10 text-gray-800" />
             </div>
           </MyCard>
           <MyCard>
             <div class="flex justify-between items-center">
               <div>
-                <p class="text-sm text-gray-500">Processing</p>
+                <p class="text-sm text-gray-500">Active Customers</p>
                 <p class="text-lg font-semibold">
-                  {{ orders.filter((o) => o.status === "processing").length }}
+                  {{ customers.filter((o) => o.status === "active").length }}
                 </p>
               </div>
-              <Clock class="w-10 h-10 text-gray-800" />
-            </div>
-          </MyCard>
-          <MyCard>
-            <div class="flex justify-between items-center">
-              <div>
-                <p class="text-sm text-gray-500">Shipped</p>
-                <p class="text-lg font-semibold">
-                  {{ orders.filter((o) => o.status === "shipped").length }}
-                </p>
-              </div>
-              <Truck class="w-10 h-10 text-gray-800" />
+              <UserCheckIcon class="w-10 h-10 text-gray-800" />
             </div>
           </MyCard>
           <MyCard>
@@ -267,12 +280,21 @@ function formatCurrency(value) {
               <div>
                 <p class="text-sm text-gray-500">Revenue</p>
                 <p class="text-lg font-semibold">
-                  {{
-                    formatCurrency(orders.reduce((acc, o) => acc + o.total, 0))
-                  }}
+                  {{ formatCurrency(revenue) }}
                 </p>
               </div>
               <Coins class="w-10 h-10 text-gray-800" />
+            </div>
+          </MyCard>
+          <MyCard>
+            <div class="flex justify-between items-center">
+              <div>
+                <p class="text-sm text-gray-500">Avg Order Value</p>
+                <p class="text-lg font-semibold">
+                  {{ formatCurrency(avgOrderValue) }}
+                </p>
+              </div>
+              <BarChart2 class="w-10 h-10 text-gray-800" />
             </div>
           </MyCard>
         </div>
@@ -289,9 +311,9 @@ function formatCurrency(value) {
               class="flex-3 min-w-[200px]"
             />
             <MyDropdown
-              v-model="payment"
-              :options="payments"
-              placeholder="All Payment"
+              v-model="type"
+              :options="types"
+              placeholder="All Type"
               class="flex-1 min-w-[150px]"
               :show-clear="false"
             />
@@ -305,60 +327,61 @@ function formatCurrency(value) {
           </div>
         </MyCard>
 
-        <!-- Orders Table -->
+        <!-- Customers Table -->
         <div class="overflow-x-auto">
           <MyTable
-            title="Orders"
-            :count="filteredOrders.length"
-            :items="filteredOrders"
+            title="Customers"
+            :count="filteredCustomers.length"
+            :items="filteredCustomers"
             :page-size="5"
           >
             <template #icon>
-              <ShoppingCart class="w-5 h-5 text-gray-900" />
+              <User class="w-5 h-5 text-gray-900" />
             </template>
             <template #header>
-              <th class="px-6 py-3 font-medium">Order ID</th>
               <th class="px-6 py-3 font-medium">Customer</th>
-              <th class="px-6 py-3 font-medium">Date</th>
-              <th class="px-6 py-3 font-medium">Items</th>
-              <th class="px-6 py-3 font-medium">Total</th>
-              <th class="px-6 py-3 font-medium">Payment</th>
+              <th class="px-6 py-3 font-medium">Contact</th>
+              <th class="px-6 py-3 font-medium">Type</th>
+              <th class="px-6 py-3 font-medium">Orders</th>
+              <th class="px-6 py-3 font-medium">Total Spent</th>
+              <th class="px-6 py-3 font-medium">Credit Limit</th>
               <th class="px-6 py-3 font-medium">Status</th>
               <th class="px-6 py-3 font-medium">Actions</th>
             </template>
 
             <template #body="{ items }">
-              <tr v-for="(order, i) in items" :key="i">
-                <td class="px-6 py-4">{{ order.code }}</td>
+              <tr v-for="(customer, i) in items" :key="i">
                 <td class="px-6 py-4">
                   <div class="flex flex-col">
-                    <span class="font-medium">{{ order.customer }}</span>
-                    <span class="text-sm text-gray-500">{{ order.email }}</span>
+                    <span class="font-medium">{{ customer.customer }}</span>
+                    <span class="text-sm text-gray-500">{{ customer.code }}</span>
                   </div>
                 </td>
-                <td class="px-6 py-4">{{ order.date }}</td>
-                <td class="px-6 py-4">{{ order.items }} items</td>
-                <td class="px-6 py-4">{{ formatCurrency(order.total) }}</td>
                 <td class="px-6 py-4">
-                  <StatusBadge :status="order.payment">
-                    {{ order.payment === "paid" ? "Paid" : "Pending" }}
-                  </StatusBadge>
+                  <div class="flex flex-col">
+                    <span class="font-medium">{{ customer.email }}</span>
+                    <span class="text-sm text-gray-500">{{ customer.telp }}</span>
+                  </div>
                 </td>
+                <td class="px-6 py-4">{{ customer.type }}</td>
+                <td class="px-6 py-4">{{ customer.orders }} items</td>
+                <td class="px-6 py-4">{{ formatCurrency(customer.total_spent) }}</td>
+                <td class="px-6 py-4">{{ formatCurrency(customer.credit_limit) }}</td>
                 <td class="px-6 py-4">
-                  <StatusBadge :status="order.status">{{
-                    order.status
-                  }}</StatusBadge>
+                  <StatusBadge :status="customer.status">
+                    {{ customer.status }}
+                  </StatusBadge>
                 </td>
                 <td class="px-6 py-4 flex gap-2 flex-wrap">
                   <button
                     class="text-blue-600 hover:text-blue-800"
-                    @click="openEdit(order)"
+                    @click="openEdit(customer)"
                   >
                     <Pencil class="w-4 h-4" />
                   </button>
                   <button
                     class="text-red-600 hover:text-red-800"
-                    @click="openDelete(order)"
+                    @click="openDelete(customer)"
                   >
                     <Trash class="w-4 h-4" />
                   </button>
@@ -367,7 +390,7 @@ function formatCurrency(value) {
 
               <tr v-if="items.length === 0">
                 <td colspan="8" class="text-center py-4 text-gray-500">
-                  No orders found.
+                  No customers found.
                 </td>
               </tr>
             </template>
@@ -381,10 +404,10 @@ function formatCurrency(value) {
       :open="showSlideout"
       :title="
         slideoutMode === 'add'
-          ? 'Add Order'
+          ? 'Add Customer'
           : slideoutMode === 'edit'
-          ? 'Edit Order'
-          : 'Delete Order'
+          ? 'Edit Customer'
+          : 'Delete Customer'
       "
       @close="showSlideout = false"
     >
@@ -392,9 +415,9 @@ function formatCurrency(value) {
       <template v-if="slideoutMode === 'add' || slideoutMode === 'edit'">
         <form class="flex flex-col gap-4">
           <MyInputField
-            label="Order Code"
+            label="Customer Code"
             v-model="form.code"
-            placeholder="ORD-XXX"
+            placeholder="CUST-XXX"
           />
           <MyInputField
             label="Customer"
@@ -406,24 +429,34 @@ function formatCurrency(value) {
             v-model="form.email"
             placeholder="Email Address"
           />
-          <MyInputField label="Date" v-model="form.date" type="date" />
           <MyInputField
-            label="Items"
-            v-model="form.items"
-            type="number"
-            placeholder="Items"
-          />
-          <MyInputField
-            label="Total"
-            v-model="form.total"
-            type="number"
-            placeholder="Total Amount"
+            label="Phone"
+            v-model="form.telp"
+            placeholder="Phone Number"
           />
           <MyDropdown
-            label="Payment"
-            v-model="form.payment"
-            :options="payments.slice(1)"
-            placeholder="Select Payment"
+            label="Type"
+            v-model="form.type"
+            :options="types.slice(1)"
+            placeholder="Select Type"
+          />
+          <MyInputField
+            label="Orders"
+            v-model="form.orders"
+            type="number"
+            placeholder="Total Orders"
+          />
+          <MyInputField
+            label="Total Spent"
+            v-model="form.total_spent"
+            type="number"
+            placeholder="Total Spent"
+          />
+          <MyInputField
+            label="Credit Limit"
+            v-model="form.credit_limit"
+            type="number"
+            placeholder="Credit Limit"
           />
           <MyDropdown
             label="Status"
@@ -438,7 +471,7 @@ function formatCurrency(value) {
       <template v-else-if="slideoutMode === 'delete'">
         <p class="text-gray-700">
           Are you sure you want to delete
-          <span class="font-semibold">{{ currentOrder?.code }}</span
+          <span class="font-semibold">{{ currentCustomer?.code }}</span
           >?
         </p>
       </template>
@@ -462,7 +495,7 @@ function formatCurrency(value) {
             variant="filled"
             size="md"
             class="w-full md:w-auto"
-            @click="saveOrder"
+            @click="saveCustomer"
           >
             Submit
           </MyButton>
@@ -473,7 +506,7 @@ function formatCurrency(value) {
             variant="filled"
             size="md"
             class="w-full md:w-auto"
-            @click="updateOrder"
+            @click="updateCustomer"
           >
             Update
           </MyButton>
@@ -484,7 +517,7 @@ function formatCurrency(value) {
             variant="filled"
             size="md"
             class="w-full md:w-auto"
-            @click="deleteOrder"
+            @click="deleteCustomer"
           >
             Delete
           </MyButton>
